@@ -19,5 +19,5 @@ export const initiate = async (process: NodeJS.Process): Promise<void> => {
 
     return commands
         .find((command) => command.name === cliConfig.command)
-        .action(cliConfig, logger);
+        .action(cliConfig, logger, process.argv);
 };

@@ -94,7 +94,7 @@ export class ConfigController {
 
         const hasWorkspaces = processArgv.some((arg) => arg.includes("--workspaces")) ||
             processArgv.some((arg) => arg.includes("-w")) ||
-            !!userConfig.glueAssets.workspaces;
+            !!userConfig.glueAssets?.workspaces;
 
         return Object.assign({}, { rootDirectory, command: command.name }, mergedConfig, { workspaces: hasWorkspaces });
     }
