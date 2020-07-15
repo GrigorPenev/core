@@ -6,15 +6,23 @@ import { initController } from "./initiate";
 import { serverDecoderDecorator } from "./config/config-decoders";
 import { Decoder } from "@mojotech/json-type-validation";
 import { versionController } from "./version";
+import { workspacesController } from "./workspaces";
 
 export interface CommandDefinition {
     name: CliCommand;
-    action: (config: CliConfig, logger: Logger) => Promise<void>;
+    action: (config: CliConfig, logger: Logger, argv?: string[]) => Promise<void>;
     requiredConfig: boolean;
     decoderDecorator?: Decoder<unknown>;
 }
 
 export const commands: CommandDefinition[] = [
+    {
+        name: "workspaces",
+        action: async (config: CliConfig, logger: Logger, argv: string[]): Promise<void> => {
+            await workspacesController.processWorkspacesCommand(config, logger, argv);
+        },
+        requiredConfig: true
+    },
     {
         name: "serve",
         action: async (config: CliConfig, logger: Logger): Promise<void> => {            

@@ -17,14 +17,14 @@ export class ConfigController {
 
         const userConfig = await this.getUserDefinedConfig(cwd, command);
 
-        const cliConfig = this.mergeDefaults(userConfig, cwd, command);
+        const cliConfig = this.mergeDefaults(userConfig, cwd, command, process.argv);
 
         this.transFormAllToAbsolute(cliConfig, cwd);
 
         if (command.requiredConfig) {
             await this.validateExistence(cliConfig);
         }
-        
+
         return cliConfig;
     }
 
@@ -83,7 +83,7 @@ export class ConfigController {
         ];
     }
 
-    private mergeDefaults(userConfig: GlueDevConfig, rootDirectory: string, command: CommandDefinition): CliConfig {
+    private mergeDefaults(userConfig: GlueDevConfig, rootDirectory: string, command: CommandDefinition, processArgv: string[]): CliConfig {
         const defaults = glueDevConfigDefaults.data;
 
         if (userConfig.server?.apps) {
@@ -92,7 +92,11 @@ export class ConfigController {
 
         const mergedConfig = (deepMerge(defaults, userConfig) as FullDevConfig);
 
-        return Object.assign({}, { rootDirectory, command: command.name }, mergedConfig);
+        const hasWorkspaces = processArgv.some((arg) => arg.includes("--workspaces")) ||
+            processArgv.some((arg) => arg.includes("-w")) ||
+            !!userConfig.glueAssets.workspaces;
+
+        return Object.assign({}, { rootDirectory, command: command.name }, mergedConfig, { workspaces: hasWorkspaces });
     }
 
     private addCookieIds(apps: ServerApp[]): CliServerApp[] {

@@ -18,6 +18,13 @@ export const loggerConfig: Configuration = {
 
 export const gCoreDeps = ["@glue42/gateway-web", "@glue42/worker-web"];
 
+export const workspacesDeps = ["@glue42/workspaces-app"];
+
+export const workspacesDefaults = {
+    appLocation: "./node_modules/@glue42/workspaces-app",
+    manifestLocation: "./workspaces.webmanifest"
+};
+
 export const glueDevConfigDefaults: { name: string; location: string; data: FullDevConfig } = {
     location: "./",
     name: "glue.config.dev.json",

@@ -13,6 +13,10 @@ export interface GlueAssets {
         location?: string;
         gwLogAppender?: string;
     };
+    workspaces?: {
+        appLocation: string;
+        manifestLocation: string;
+    };
     worker?: string;
     config?: string;
     route?: string;
