@@ -249,13 +249,26 @@ export class CoreDevServer {
         const glueAssets = [
             { route: `${this.config.glueAssets.route}/worker.js`, resolveWith: this.config.glueAssets.worker },
             { route: `${this.config.glueAssets.route}/gateway.js`, resolveWith: this.config.glueAssets.gateway.location },
-            { route: `${this.config.glueAssets.route}/glue.config.json`, resolveWith: this.config.glueAssets.config }
+            { route: `${this.config.glueAssets.route}/glue.config.json`, resolveWith: this.config.glueAssets.config },
+            { route: `${this.config.glueAssets.route}/glue.layouts.json`, resolveWith: this.config.glueAssets.layouts }
         ];
 
         if (this.config.glueAssets.gateway.gwLogAppender) {
             glueAssets.push({
                 route: `${this.config.glueAssets.route}/gwLogAppender.js`,
                 resolveWith: this.config.glueAssets.gateway.gwLogAppender
+            });
+        }
+
+        if (this.config.glueAssets.workspaces) {
+            glueAssets.push({
+                route: `${this.config.glueAssets.route}/workspaces/workspaces.webmanifest`,
+                resolveWith: this.config.glueAssets.workspaces.manifestLocation
+            });
+
+            glueAssets.push({
+                route: `${this.config.glueAssets.route}/workspaces`,
+                resolveWith: this.config.glueAssets.workspaces.appLocation
             });
         }
 

@@ -33,6 +33,7 @@ export interface CliGlueAssets {
         manifestLocation: string;
     };
     config: string;
+    layouts: string;
     route: string;
 }
 

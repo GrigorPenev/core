@@ -33,7 +33,12 @@ export const glueDevConfigDecoder: Decoder<GlueDevConfig> = object({
             gwLogAppender: optional(nonEmptyStringDecoder)
         })),
         config: optional(nonEmptyStringDecoder),
-        route: optional(nonEmptyStringDecoder)
+        route: optional(nonEmptyStringDecoder),
+        workspaces: optional(object({
+            appLocation: nonEmptyStringDecoder,
+            manifestLocation: nonEmptyStringDecoder
+        })),
+        layouts: optional(nonEmptyStringDecoder)
     })),
     server: optional(object({
         apps: array(userServerAppDecoder),

@@ -19,6 +19,7 @@ export interface GlueAssets {
     };
     worker?: string;
     config?: string;
+    layouts?: string;
     route?: string;
 }
 

@@ -1,7 +1,7 @@
 import { access, constants, writeFile } from "fs";
 import { join } from "path";
 import { Npm } from "./npm";
-import { gCoreDeps, glueConfigDefaults, glueDevConfigDefaults } from "../defaults";
+import { gCoreDeps, glueConfigDefaults, glueDevConfigDefaults, layoutsDefaults } from "../defaults";
 import { CliConfig } from "../config/cli.config";
 import { Logger } from "log4js";
 import { WorkspacesController } from "../workspaces/controller";
@@ -41,6 +41,7 @@ export class InitiationController {
         await Promise.all([
             this.createFile(join(config.rootDirectory, glueDevConfigDefaults.name), JSON.stringify(glueDevConfigDefaults.data, null, 4)),
             this.createFile(join(config.rootDirectory, glueConfigDefaults.name), JSON.stringify(glueConfigDefaults.data, null, 4)),
+            this.createFile(join(config.rootDirectory, layoutsDefaults.name), JSON.stringify(layoutsDefaults.data, null, 4)),
         ]);
 
         if (config.workspaces) {

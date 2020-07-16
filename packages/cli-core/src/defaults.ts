@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Configuration } from "log4js";
 import { FullDevConfig } from "./config/cli.config.d";
 
@@ -25,6 +26,14 @@ export const workspacesDefaults = {
     manifestLocation: "./workspaces.webmanifest"
 };
 
+export const layoutsDefaults: { name: string; data: { globals: any[]; workspaces: any[] } } = {
+    name: "glue.layouts.json",
+    data: {
+        globals: [],
+        workspaces: []
+    }
+};
+
 export const glueDevConfigDefaults: { name: string; location: string; data: FullDevConfig } = {
     location: "./",
     name: "glue.config.dev.json",
@@ -35,6 +44,7 @@ export const glueDevConfigDefaults: { name: string; location: string; data: Full
             },
             worker: "./node_modules/@glue42/worker-web/dist/worker.js",
             config: "./glue.config.json",
+            layouts: "./glue.layouts.json",
             route: "/glue"
         },
         server: {
