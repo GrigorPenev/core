@@ -30,6 +30,12 @@
                 "localhost": {
                     "port": 3001
                 }
+            },
+            {
+                "route": "/details",
+                "localhost": {
+                    "port": 3002
+                }
             }
         ]
     },

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { useGlue, GlueContext } from '@glue42/react-hooks';
 import { REQUEST_OPTIONS } from './constants';
 // eslint-disable-next-line no-unused-vars
-import { setClientPortfolioInterop, setClientPortfolioSharedContext, getChannelNamesAndColors, joinChannel, setClientPortfolioChannels } from './glue';
+import { setClientPortfolioInterop, setClientPortfolioSharedContext, getChannelNamesAndColors, joinChannel, setClientPortfolioChannels, startApp } from './glue';
 import ChannelSelectorWidget from './ChannelSelectorWidget';
 
 function Clients() {
@@ -24,13 +24,14 @@ function Clients() {
     const channelNamesAndColors = useGlue(getChannelNamesAndColors);
     // The callback that will join the newly selected channel. Pass it as props to the ChannelSelectorWidget component to be called whenever a channel is selected.
     const onChannelSelected = useGlue(joinChannel);
-
+    
     // const onClick = useGlue(setClientPortfolioInterop);
 
     const onClickContext = useGlue(setClientPortfolioSharedContext);
 
     const onClick = useGlue(setClientPortfolioChannels);
 
+    const startStocksApp = useGlue(startApp);
     const glue = useContext(GlueContext);
 
     return (
@@ -55,6 +56,7 @@ function Clients() {
                     <ChannelSelectorWidget
                         channelNamesAndColors={channelNamesAndColors}
                         onChannelSelected={onChannelSelected}
+                        onDefaultChannelSelected={onChannelSelected}
                     />
                 </div>
             </div>
@@ -75,6 +77,7 @@ function Clients() {
                                 onClick={() => {
                                         onClickContext({ clientId: gId, clientName: name, portfolio })
                                         onClick({ clientId: gId, clientName: name, portfolio })
+                                        startStocksApp();
                                     }
                                 }
                             >

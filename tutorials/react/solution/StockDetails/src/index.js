@@ -5,12 +5,12 @@ import { GlueProvider } from '@glue42/react-hooks';
 import 'bootstrap/dist/css/bootstrap.css';
 import './index.css';
 import './App.css';
-import Clients from './Clients';
+import StockDetails from './StockDetails';
 import * as serviceWorker from './serviceWorker';
 
 ReactDOM.render(
-    <GlueProvider config={{ channels: true, appManager: true, application: 'Clients' }} glueFactory={GlueWeb}>
-        <Clients />
+    <GlueProvider config={{ channels: true, appManager: true, application: 'Stock Details' }} glueFactory={GlueWeb}>
+        <StockDetails />
     </GlueProvider>,
     document.getElementById('root')
 );
