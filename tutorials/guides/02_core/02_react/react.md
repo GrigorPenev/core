@@ -248,6 +248,77 @@ npm run build
 
 Note that if you go with this approach, you will have to rebuild the **Clients** and **Stocks** applications every time you make changes.
 
+### 1.5. React Project Setup
+
+This tutorial starts with two main applications. As the user requirements change, however, your Glue42 Core project will expand with more applications. Here you will learn how to create a new React application and set it up correctly in order to enable it to work with Glue42 Core. When you have to create and set up new apps later on in the tutorial, you can refer back to this chapter and follow the steps below to ensure that your app has been configured properly:
+
+1. Go to the directory where you want your new app to be created, open a command prompt and run the following command replacing `my-app` with the name of your app:
+
+```cmd
+npx create-react-app my-app
+```
+
+2. Install the following dependencies in the root directory of your app:
+
+```cmd
+npm i --save @glue42/react-hooks@1.0.7 react-select@3.1.0 bootstrap@4.4.1 react-app-rewired@2.1.5 chroma-js@2.1.0
+```
+
+3. Edit the `package.json` file of your app:
+
+- add a `homepage` property replacing `my-app` with the name of your app:
+
+```json
+"homepage": "/my-app/"
+```
+
+- change the `start`, `build` and `test` scripts to the following:
+
+```json
+"start": "react-app-rewired start --scripts-version react-scripts",
+"build": "react-app-rewired build --scripts-version react-scripts",
+"test": "react-app-rewired test --scripts-version react-scripts",
+```
+
+4. Create a `.env` file in the root directory of your app with the following settings:
+
+```cmd
+SKIP_PREFLIGHT_CHECK=true
+PORT=3002
+```
+
+*Note that the `PORT` value must be different for each app in the project.*
+
+5. Go to the root directory of one of the existing tutorial apps, copy the `config-overrides.js` file and paste it in the root directory of your app.
+
+6. Go to the `glue.config.dev.json` file in the root directory of your **Glue42 Core** project and add the details for the new application in the `apps` array. Replace `my-app` with the route to your app and the port number with the port you have defined for your app in the `.env` file:
+
+```json
+"server": {
+    ...
+    "apps": [
+        ...,
+        {
+            "route": "/my-app",
+            "localhost": {
+                "port": 3002
+            }
+        }
+    ],
+    ...
+}
+```
+
+Restart the Glue42 CLI by quitting it and running the `gluec serve` command again for the changes to take effect. 
+
+7. Start your app by running the following command from its root directory:
+
+```cmd 
+npm start
+```
+
+8. Create or edit the code for the new app by following the specific instructions in the respective chapters.
+
 ## 2. Initializing the Glue42 Web Library
 
 Now, you need to initialize the [**Glue42 Web**](../../../reference/core/latest/glue42%20web/index.html) library in each of the components. 
@@ -286,7 +357,7 @@ import { GlueContext, useGlue } from "@glue42/react-hooks";
 The following JSX code will allow the components to show whether the Glue42 framework is available or not. Add the code in all three components and place it in the `return` statement inside the `<div className="container-fluid">` element:
 
 ```javascript
-return(
+return (
     <div className="container-fluid">
         <div className="row">
             <div className="col-md-2">
@@ -1168,7 +1239,7 @@ Now, you can open multiple instances of the **Stocks** app and keep them on diff
 
 Up until now the **Stocks** app had to use the Window Management API to open the **Stock Details** application when the user clicks on a stock. This works fine for small projects, but does not scale well for larger ones, because this way each app has to know all details (URL, start position, initial context, etc.) about every application it needs to start. In this chapter you will replace the Window Management API with the [Application Management API](../../../reference/core/latest/appmanager/index.html) which will allow you to predefine the applications in the [Glue42 Environment](../../../core/core-concepts/environment/overview/index.html). The **Stocks** app will be decoupled from the **Stock Details** - it will need only the name of the **Stock Details** app to be able to start it.
 
-### 7.1. Application configuration
+### 7.1. Application Configuration
 
 To take advantage of the [Application Management API](../../../reference/core/latest/appmanager/index.html), you need to define configurations for your applications in the `glue.config.json` file of your project and enable the Application Management API by passing a [`Config`](../../../reference/core/latest/glue42%20web/index.html#!Config) object during the initialization of the [Glue42 Web](../../../reference/core/latest/glue42%20web/index.html) library in each application.
 
@@ -1212,50 +1283,9 @@ First, open the `glue.config.json` and add the following application configurati
 }
 ```
 
-### 7.2. Creating a new react project
+#### Split the Stocks App
 
 Because the `Stocks` project contains both `Stocks.jsx` and `StockDetails.jsx`, we need to separate them in order to use the Application Management API to open stocks and stock details as different applications.
-
-### 7.2.1 Initialize the Stock Details project
-
-Run the following command inside the `start` folder:
-
-```cmd
-    npx create-react-app stock-details
-```
-
-This will generate a new react project in which we will move the code of `StockDetails.jsx`.
-
-### 7.2.2. Setup the stock-details project
-
-Copy the file `StockDetails.jsx` from `Stocks/src/StockDetails.jsx` into `stock-details/src/StockDetails.jsx`. Create a new file nammed `.env` inside the `stock-details` folder and paste the following lines:
-
-```cmd
-SKIP_PREFLIGHT_CHECK=true
-PORT=3002
-```
-
-Go to the `package.json` file of the `stock-details` project and paste the following line below the `eslintConfig` property:
-
-```json
-  "homepage": "/details/",
-```
-
-Install the following dependencies:
-
-```cmd
-npm i --save @glue42/react-hooks@1.0.7 react-select@3.1.0 bootstrap@4.4.1 react-app-rewired@2.1.5 chroma-js@2.1.0
-```
-
-Change the `start`, `build`, and `test` `scripts` to the following:
-
-```json
-"start": "react-app-rewired start --scripts-version react-scripts",
-"build": "react-app-rewired build --scripts-version react-scripts",
-"test": "react-app-rewired test --scripts-version react-scripts",
-```
-
-Copy the file `Stocks/config-overrides.js` from the root directory of the `Stocks` project into the root directory of `stock-details`
 
 Copy the files `Stocks/src/glue.js` and `Stocks/src/constants.js` into `stock-details/src`
 
@@ -1275,22 +1305,6 @@ ReactDOM.render(
 );
 ```
 
-Now we need to tell `gluec` about the new project. Go to `glue.config.dev.json` inside the root `start` directory and add the folowing lines under the `server.app` array:
-
-```json
-{
-    "route": "/details",
-    "localhost": {
-        "port": 3002
-    }
-}
-```
-Go inside `stock-details` and run:
-
-```cmd 
-npm start
-```
-
 Next, we will fix `Stocks.jsx`, because we have moved `StockDetails.jsx` out of the `src` folder and the import will not work anymore. Go inside `Stocks/src/index.js` and comment out the line checking the browser's URL. We extracted `StockDetails.jsx` from the project into it's own application and we do not need it anymore. Then change the line `<App/>` to `<Stocks/>` and delete the `StockDetails` import.
 
 ```javascript
@@ -1308,7 +1322,7 @@ ReactDOM.render(
 
 Go inside the `start` directory and restart `gluec`. This will start the new `StockDetails` application and the updated `Stocks` application.
 
-### 7.2.3. Enable Application Management API in Clients and Stocks
+#### Enable the Application Management API
 
 After configuritng `StockDetails` to be a separate application, enable the Application Management API in `Clients` and `Stocks` by passing `{ appManager: true }` and the application name to the `config` property of the `<GlueProvider/>` wrapper component in the `index.js` files of `Clients` react app and `Stocks` react app:
 
@@ -1332,7 +1346,7 @@ ReactDOM.render(
 );
 ```
 
-### 7.3. Starting Applications
+### 7.2. Starting Applications
 
 Opening the `StockDetails.jsx` application using the Application Manager requires very simple changes. Go inside `Stocks/src/glue.js` and change the `openStockDetails` function to the following one. You can also delete the `windowId` variable as it is no longer needed. The application manager handles opening and closing the windows of the applications for you:
 
@@ -1351,7 +1365,7 @@ export const getMyWindowContext = glue => glue.appManager.myInstance.context;
 
 We have created and configured the new application! We can now open the `StockDetails` application using the Application Management API.
 
-### 7.4. Application Instances
+### 7.3. Application Instances
 
 Next, you will use the Application Management API to add new functionality to the **Clients** application. When the user selects a client, you can check whether there is a running instance of the **Stocks** app, and if there isn't one, you will start the **Stocks** app. You will also pass the current channel as context to the started instance of the **Stocks** app. Each application object has an `instances` property that allows you to get the running instances of the application.
 
