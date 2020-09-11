@@ -998,7 +998,7 @@ if (detailsWorkspaceWindow) {
     // Add a `Group` element as a sibling of the immediate parent of the Stocks window.
     const group = await myImmediateParent.parent.addGroup();
 
-    // Open the Stock Details window in the newly create `Group` element.
+    // Open the Stock Details window in the newly created `Group` element.
     detailsWorkspaceWindow = await group.addWindow({ appName: "Stock Details" });
     await detailsWorkspaceWindow.forceLoad();
     detailsGlue42Window = detailsWorkspaceWindow.getGdWindow();
