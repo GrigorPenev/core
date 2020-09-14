@@ -1844,7 +1844,7 @@ To eject your React app, go to its root directory and run:
 npm run eject
 ```
 
-You should now have access to a `webpack.config.js` file in the newly created `./config` directory. Place the following code in the `plugins` array of the `webpack.config.js` file:
+You should now have access to a `webpack.config.js` file in the newly created `/config` directory. Place the following code in the `plugins` array of the `webpack.config.js` file:
 
 ```javascript
 const CopyWebpackPlugin = require("copy-webpack-plugin");
@@ -1874,9 +1874,9 @@ node ./scripts/build.js
 
 ### 9.2. By Modifying the CRA Configuration
 
-Instead of ejecting your app, you can modify the Create React App configuration using `react-app-rewired`. This option maintains most of the benefits from using Create React App.
+Instead of ejecting your app, you can modify the Create React App configuration using the `react-app-rewired` package. This option maintains most of the benefits from using Create React App.
 
-*Note that the initial applications from this tutorial, as well as the ones you are required to create during the course of the tutorial, already have `react-app-rewired` installed.*
+*Note that the initial applications from this tutorial, as well as the ones you are required to create during the course of the tutorial, already have the `react-app-rewired` package installed.*
 
 To install `react-app-rewired`, go to the root directory of your app and run:
 
