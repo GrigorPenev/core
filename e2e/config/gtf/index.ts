@@ -13,7 +13,7 @@ const startGtf = async () => {
 
     window.gtf = Object.assign(
         new GtfCore(glue),
-        { agm: new GtfAgm() }
+        { agm: new GtfAgm(glue) }
     );
 }
 
