@@ -1,17 +1,19 @@
 import { Glue42Workspaces } from "../../workspaces";
-import { AddItemResult, WorkspaceSnapshotResult, FrameSnapshotResult } from "./protocol";
-import { SubscriptionConfig, StreamType, StreamAction } from "./subscription";
+import { AddItemResult, WorkspaceSnapshotResult, FrameSnapshotResult, SimpleWindowOperationSuccessResult } from "./protocol";
+import { SubscriptionConfig, WorkspaceEventType, WorkspaceEventAction } from "./subscription";
 import { RefreshChildrenConfig } from "./privateData";
 import { Child } from "./builders";
 import { GDWindow } from "./glue";
+import { UnsubscribeFunction } from "callback-registry";
 
 export interface WorkspacesController {
     checkIsInSwimlane(windowId: string): Promise<boolean>;
+    checkIsWindowLoaded(windowId: string): boolean;
     createWorkspace(definition: Glue42Workspaces.WorkspaceDefinition, saveConfig?: Glue42Workspaces.WorkspaceCreateConfig): Promise<Glue42Workspaces.Workspace>;
     restoreWorkspace(name: string, options?: Glue42Workspaces.RestoreWorkspaceConfig): Promise<Glue42Workspaces.Workspace>;
     add(type: "container" | "window", parentId: string, parentType: "row" | "column" | "group" | "workspace", definition: Glue42Workspaces.WorkspaceWindowDefinition | Glue42Workspaces.BoxDefinition): Promise<AddItemResult>;
     processLocalSubscription(config: SubscriptionConfig, levelId: string): Promise<Glue42Workspaces.Unsubscribe>;
-    processGlobalSubscription(callback: (callbackData: unknown) => void, streamType: StreamType, action: StreamAction): Promise<Glue42Workspaces.Unsubscribe>;
+    processGlobalSubscription(callback: (callbackData: unknown) => void, streamType: WorkspaceEventType, action: WorkspaceEventAction): Promise<Glue42Workspaces.Unsubscribe>;
     getFrame(selector: { windowId?: string; predicate?: (frame: Glue42Workspaces.Frame) => boolean }): Promise<Glue42Workspaces.Frame>;
     getFrames(predicate?: (frame: Glue42Workspaces.Frame) => boolean): Promise<Glue42Workspaces.Frame[]>;
     getWorkspace(predicate: (workspace: Glue42Workspaces.Workspace) => boolean): Promise<Glue42Workspaces.Workspace>;
@@ -23,8 +25,14 @@ export interface WorkspacesController {
     deleteLayout(name: string): Promise<void>;
     exportLayout(predicate?: (layout: Glue42Workspaces.WorkspaceLayout) => boolean): Promise<Glue42Workspaces.WorkspaceLayout[]>;
     bundleTo(type: "row" | "column", workspaceId: string): Promise<void>;
+    getWorkspaceContext(workspaceId: string): Promise<any>;
+    setWorkspaceContext(workspaceId: string, data: any): Promise<void>;
+    updateWorkspaceContext(workspaceId: string, data: any): Promise<void>;
+    subscribeWorkspaceContextUpdated(workspaceId: string, callback: (data: any) => void): Promise<UnsubscribeFunction>;
     saveLayout(config: Glue42Workspaces.WorkspaceLayoutSaveConfig): Promise<Glue42Workspaces.WorkspaceLayout>;
     importLayout(layouts: Glue42Workspaces.WorkspaceLayout[]): Promise<void>;
+    handleOnSaved(callback: (layout: Glue42Workspaces.WorkspaceLayout) => void): UnsubscribeFunction;
+    handleOnRemoved(callback: (layout: Glue42Workspaces.WorkspaceLayout) => void): UnsubscribeFunction;
     restoreItem(itemId: string): Promise<void>;
     maximizeItem(itemId: string): Promise<void>;
     focusItem(itemId: string): Promise<void>;
@@ -33,7 +41,7 @@ export interface WorkspacesController {
     moveFrame(itemId: string, config: Glue42Workspaces.MoveConfig): Promise<void>;
     getGDWindow(itemId: string): GDWindow;
     forceLoadWindow(itemId: string): Promise<string>;
-    ejectWindow(itemId: string): Promise<void>;
+    ejectWindow(itemId: string): Promise<string>;
     moveWindowTo(itemId: string, newParentId: string): Promise<void>;
     getSnapshot(itemId: string, type: "workspace" | "frame"): Promise<WorkspaceSnapshotResult | FrameSnapshotResult>;
     setItemTitle(itemId: string, title: string): Promise<void>;

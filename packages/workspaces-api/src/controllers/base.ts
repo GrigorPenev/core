@@ -1,22 +1,26 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Workspace } from "../models/workspace";
 import { WorkspaceSnapshotResult, WorkspaceCreateConfigProtocol, FrameSummaryResult, AddItemResult, WorkspaceSummariesResult, WorkspaceSummaryResult, SimpleWindowOperationSuccessResult, FrameSnapshotResult, SwimlaneWindowSnapshotConfig, ParentSnapshotConfig } from "../types/protocol";
 import { OPERATIONS } from "../communication/constants";
 import { FrameCreateConfig, WorkspaceIoCCreateConfig, WindowCreateConfig, ParentCreateConfig } from "../types/ioc";
 import { IoC } from "../shared/ioc";
 import { Bridge } from "../communication/bridge";
-import { Instance, GDWindow, WindowsAPI } from "../types/glue";
+import { Instance, GDWindow, WindowsAPI, ContextsAPI, LayoutsAPI } from "../types/glue";
 import { Glue42Workspaces } from "../../workspaces";
 import { Frame } from "../models/frame";
 import { RefreshChildrenConfig } from "../types/privateData";
 import { Child } from "../types/builders";
 import { PrivateDataManager } from "../shared/privateDataManager";
 import { Window } from "../models/window";
+import { UnsubscribeFunction } from "callback-registry";
 
 export class BaseController {
 
     constructor(
         private readonly ioc: IoC,
-        private readonly windows: WindowsAPI
+        private readonly windows: WindowsAPI,
+        private readonly contexts: ContextsAPI,
+        private readonly layouts: LayoutsAPI,
     ) { }
 
     private get bridge(): Bridge {
@@ -25,6 +29,10 @@ export class BaseController {
 
     private get privateDataManager(): PrivateDataManager {
         return this.ioc.privateDataManager;
+    }
+
+    public checkIsWindowLoaded(windowId: string): boolean {
+        return windowId && this.windows.list().some((win) => win.id === windowId);
     }
 
     public async createWorkspace(createConfig: WorkspaceCreateConfigProtocol, frameInstance?: Instance): Promise<Workspace> {
@@ -109,9 +117,40 @@ export class BaseController {
                 id: summary.id,
                 frameId: summary.config.frameId,
                 positionIndex: summary.config.positionIndex,
-                title: summary.config.title
+                title: summary.config.title,
+                layoutName: summary.config.layoutName
             };
         });
+    }
+
+    public handleOnSaved(callback: (layout: Glue42Workspaces.WorkspaceLayout) => void): UnsubscribeFunction {
+        const wrappedCallback = (layout: Glue42Workspaces.WorkspaceLayout): void => {
+            if (layout.type !== "Workspace") {
+                return;
+            }
+
+            callback(layout);
+        };
+
+        const addedUnSub: UnsubscribeFunction = this.layouts.onAdded(wrappedCallback);
+        const changedUnSub: UnsubscribeFunction = this.layouts.onChanged(wrappedCallback);
+
+        return (): void => {
+            addedUnSub();
+            changedUnSub();
+        };
+    }
+
+    public handleOnRemoved(callback: (layout: Glue42Workspaces.WorkspaceLayout) => void): UnsubscribeFunction {
+        const wrappedCallback = (layout: Glue42Workspaces.WorkspaceLayout): void => {
+            if (layout.type !== "Workspace") {
+                return;
+            }
+
+            callback(layout);
+        };
+
+        return this.layouts.onRemoved(wrappedCallback);
     }
 
     public async fetchWorkspace(workspaceId: string, frameInstance?: Instance): Promise<Workspace> {
@@ -132,6 +171,26 @@ export class BaseController {
 
     public async bundleTo(type: "row" | "column", workspaceId: string, frameInstance?: Instance): Promise<void> {
         await this.bridge.send(OPERATIONS.bundleWorkspace.name, { type, workspaceId }, frameInstance);
+    }
+
+    public getWorkspaceContext(workspaceId: string): Promise<any> {
+        const contextName = `___workspace___${workspaceId}`;
+        return this.contexts.get(contextName);
+    }
+
+    public setWorkspaceContext(workspaceId: string, data: any): Promise<void> {
+        const contextName = `___workspace___${workspaceId}`;
+        return this.contexts.set(contextName, data);
+    }
+
+    public updateWorkspaceContext(workspaceId: string, data: any): Promise<void> {
+        const contextName = `___workspace___${workspaceId}`;
+        return this.contexts.update(contextName, data);
+    }
+
+    public subscribeWorkspaceContextUpdated(workspaceId: string, callback: (data: any) => void): Promise<UnsubscribeFunction> {
+        const contextName = `___workspace___${workspaceId}`;
+        return this.contexts.subscribe(contextName, callback);
     }
 
     public async restoreItem(itemId: string, frameInstance?: Instance): Promise<void> {
@@ -168,8 +227,8 @@ export class BaseController {
         return controlResult.windowId;
     }
 
-    public async ejectWindow(itemId: string, frameInstance?: Instance): Promise<void> {
-        await this.bridge.send(OPERATIONS.ejectWindow.name, { itemId }, frameInstance);
+    public async ejectWindow(itemId: string, frameInstance?: Instance): Promise<SimpleWindowOperationSuccessResult> {
+        return await this.bridge.send<SimpleWindowOperationSuccessResult>(OPERATIONS.ejectWindow.name, { itemId }, frameInstance);
     }
 
     public async moveWindowTo(itemId: string, newParentId: string, frameInstance?: Instance): Promise<void> {
@@ -293,7 +352,14 @@ export class BaseController {
 
     public notifyWindowAdded(windowId: string): Promise<void> {
         return new Promise((resolve) => {
-            const unsubscribe = this.windows.onWindowAdded((win) => {
+
+            const alreadyPresent: boolean = this.windows.list().some((win) => win.id === windowId);
+
+            if (alreadyPresent) {
+                return resolve();
+            }
+
+            const unsubscribe: UnsubscribeFunction = this.windows.onWindowAdded((win) => {
 
                 if (win.id !== windowId) {
                     return;

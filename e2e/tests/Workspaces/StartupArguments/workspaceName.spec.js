@@ -1,4 +1,5 @@
-describe("Argument workspaceName Should", () => {
+// incorrect tests
+describe.skip("Argument workspaceName Should", () => {
     const sampleLayoutName = "sample-workspace-name";
 
     const basicConfig = {
@@ -75,5 +76,25 @@ describe("Argument workspaceName Should", () => {
         expect(framesCount).to.eql(1);
         expect(workspacesCount).to.eql(1);
         expect(windowCount).to.eql(1);
+    });
+
+    it("set the layoutName to the workspaceName when a workspace is restored from a query argument", async () => {
+        const winName = gtf.getWindowName("workspaces");
+        const win = await glue.windows.open(winName, `/glue/workspaces?workspaceName=${sampleLayoutName}`);
+
+        const foundServer = glue.interop.servers().find((server) => {
+
+            const serverMatch = server.windowId === win.id;
+            const methodMatch = server.getMethods().some((method) => method.name === "T42.Workspaces.Control");
+
+            return serverMatch && methodMatch;
+        });
+
+        if (!foundServer) {
+            await waitForControl(win);
+        }
+        const firstWorkspace = (await glue.workspaces.getAllWorkspaces())[0];
+
+        expect(firstWorkspace.layoutName).to.eql(sampleLayoutName);
     });
 });

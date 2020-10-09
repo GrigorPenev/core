@@ -14,9 +14,7 @@ describe('getAllWindows() Should ', function () {
     }
     let workspace = undefined;
 
-    before(() => {
-        return coreReady;
-    });
+    before(() => coreReady);
 
     beforeEach(async () => {
         workspace = await glue.workspaces.createWorkspace(basicConfig);
@@ -32,6 +30,7 @@ describe('getAllWindows() Should ', function () {
 
         expect(Array.isArray(windows)).to.be.true;
     });
+
 
     Array.from({ length: 3 }).forEach((_, i) => {
         it(`return only the windows in the target workspace when there are ${i} workspaces`, async () => {
@@ -58,4 +57,5 @@ describe('getAllWindows() Should ', function () {
             });
         }
     });
+
 });

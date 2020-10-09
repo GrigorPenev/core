@@ -49,7 +49,7 @@ export class Window implements Glue42Workspaces.WorkspaceWindow {
     }
 
     public get isLoaded(): boolean {
-        return getData(this).config.isLoaded;
+        return getData(this).controller.checkIsWindowLoaded(this.id);
     }
 
     public get focused(): boolean {
@@ -86,7 +86,6 @@ export class Window implements Glue42Workspaces.WorkspaceWindow {
         const windowId = await controller.forceLoadWindow(itemId);
 
         getData(this).config.windowId = windowId;
-        getData(this).config.isLoaded = true;
     }
 
     public async focus(): Promise<void> {
@@ -135,9 +134,11 @@ export class Window implements Glue42Workspaces.WorkspaceWindow {
         if (!this.isLoaded) {
             throw new Error("Cannot eject this window, because it is not loaded yet");
         }
-        const itemId = getData(this).id;
+        const itemId: string = getData(this).id;
 
-        await getData(this).controller.ejectWindow(itemId);
+        const newWindowId: string = await getData(this).controller.ejectWindow(itemId);
+
+        getData(this).config.windowId = newWindowId;
 
         return this.getGdWindow();
     }
@@ -171,58 +172,6 @@ export class Window implements Glue42Workspaces.WorkspaceWindow {
         return controller.moveWindowTo(myId, parent.id);
     }
 
-    public async onAdded(callback: () => void): Promise<Glue42Workspaces.Unsubscribe> {
-        checkThrowCallback(callback);
-        const id = getData(this).id;
-        const wrappedCallback = async (): Promise<void> => {
-            await this.workspace.refreshReference();
-            callback();
-        };
-        const config: SubscriptionConfig = {
-            callback: wrappedCallback,
-            action: "added",
-            streamType: "window",
-            level: "window"
-        };
-        const unsubscribe = await getData(this).controller.processLocalSubscription(config, id);
-        return unsubscribe;
-    }
-
-    public async onLoaded(callback: () => void): Promise<Glue42Workspaces.Unsubscribe> {
-        // TODO add an option to invoke the callback if the window has been already loaded
-        checkThrowCallback(callback);
-        const id = getData(this).id;
-        const wrappedCallback = async (): Promise<void> => {
-            await this.workspace.refreshReference();
-            callback();
-        };
-        const config: SubscriptionConfig = {
-            callback: wrappedCallback,
-            action: "loaded",
-            streamType: "window",
-            level: "window"
-        };
-        const unsubscribe = await getData(this).controller.processLocalSubscription(config, id);
-        return unsubscribe;
-    }
-
-    public async onParentChanged(callback: (newParent: Row | Column | Group | Glue42Workspaces.Workspace) => void): Promise<Glue42Workspaces.Unsubscribe> {
-        checkThrowCallback(callback);
-        const id = getData(this).id;
-        const wrappedCallback = async (): Promise<void> => {
-            await this.workspace.refreshReference();
-            callback(this.parent);
-        };
-        const config: SubscriptionConfig = {
-            callback: wrappedCallback,
-            action: "containerChange",
-            streamType: "window",
-            level: "window"
-        };
-        const unsubscribe = await getData(this).controller.processLocalSubscription(config, id);
-        return unsubscribe;
-    }
-
     public async onRemoved(callback: () => void): Promise<Glue42Workspaces.Unsubscribe> {
         checkThrowCallback(callback);
         const id = getData(this).id;
@@ -233,8 +182,8 @@ export class Window implements Glue42Workspaces.WorkspaceWindow {
         const config: SubscriptionConfig = {
             callback: wrappedCallback,
             action: "removed",
-            streamType: "window",
-            level: "window"
+            eventType: "window",
+            scope: "window"
         };
         const unsubscribe = await getData(this).controller.processLocalSubscription(config, id);
         return unsubscribe;

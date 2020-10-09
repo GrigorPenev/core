@@ -2,28 +2,7 @@ import { FDC3 } from "../../types";
 import { Glue42 } from "@glue42/desktop";
 import { SystemChannel, AppChannel } from "./channel";
 import { WindowType } from "../windowtype";
-import { getChannelsList, isGlue42Core, newSubscribe, isEmptyObject } from "../utils";
-
-const Listener = (actualUnsub:
-    (() => void)
-    | Promise<() => void>
-): FDC3.Listener => {
-    return {
-        unsubscribe(): void {
-            if (!actualUnsub) {
-                // tslint:disable-next-line:no-console
-                console.error("Could not unsubscribe!");
-                return;
-            }
-
-            if (typeof actualUnsub === "function") {
-                actualUnsub();
-            } else {
-                (actualUnsub as Promise<() => void>).then((unsubFunc: () => void) => unsubFunc());
-            }
-        }
-    };
-};
+import { getChannelsList, isGlue42Core, newSubscribe, isEmptyObject, Listener } from "../utils";
 
 interface PendingSubscription {
     contextType: string;
@@ -31,7 +10,7 @@ interface PendingSubscription {
     setActualUnsub: (actualUnsub: () => void) => void;
 }
 
-const createChannelsApi = (): FDC3.ChannelsAPI => {
+const createChannelsAgent = (): FDC3.ChannelsAPI => {
     let currentChannel: FDC3.Channel | null;
     let pendingSubscription: PendingSubscription | null;
 
@@ -66,7 +45,9 @@ const createChannelsApi = (): FDC3.ChannelsAPI => {
     };
 
     const handleSwitchChannelUI = (channelId: string): void => {
-        setCurrentChannel(channels[channelId]);
+        if (typeof channelId !== "undefined") {
+            setCurrentChannel(channels[channelId]);
+        }
     };
 
     const createPendingListener = (contextType: string, handler: (context: FDC3.Context) => void): FDC3.Listener => {
@@ -198,7 +179,6 @@ const createChannelsApi = (): FDC3.ChannelsAPI => {
         await initDone;
 
         if (!currentChannel) {
-            // tslint:disable-next-line:no-console
             console.error("You must join a channel first.");
             return;
         }
@@ -216,17 +196,19 @@ const createChannelsApi = (): FDC3.ChannelsAPI => {
         const handler = arguments.length === 2 ? handlerInput : contextTypeInput;
 
         if (!currentChannel) {
-            // tslint:disable-next-line:no-console
             console.warn("You will start receiving broadcasts only after you join a channel !");
             const listener = createPendingListener(contextType, handler);
 
             // Handle context passed to `fdc3.open()`.
-            (window as WindowType).gluePromise.then(() => {
-                const startupContext = (window as WindowType).glue.appManager.myInstance.context;
-                if (!isEmptyObject(startupContext)) {
-                    handler(startupContext);
-                }
-            });
+            (window as WindowType).gluePromise
+                .then(() => {
+                    return (window as WindowType).glue.windows.my().getContext();
+                })
+                .then((startupContext) => {
+                    if (!isEmptyObject(startupContext)) {
+                        handler(startupContext);
+                    }
+                });
 
             return listener;
         }
@@ -277,4 +259,4 @@ const createChannelsApi = (): FDC3.ChannelsAPI => {
     };
 };
 
-export default createChannelsApi;
+export default createChannelsAgent;

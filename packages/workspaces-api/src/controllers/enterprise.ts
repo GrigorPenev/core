@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Bridge } from "../communication/bridge";
-import { IsWindowInSwimlaneResult, WorkspaceCreateConfigProtocol, WorkspaceSnapshotResult, FrameSummariesResult, WorkspaceSummariesResult, LayoutSummariesResult, ExportedLayoutsResult, FrameSnapshotResult, AddItemResult } from "../types/protocol";
+import { IsWindowInSwimlaneResult, WorkspaceCreateConfigProtocol, WorkspaceSnapshotResult, FrameSummariesResult, WorkspaceSummariesResult, LayoutSummariesResult, ExportedLayoutsResult, FrameSnapshotResult, AddItemResult, WindowStreamData } from "../types/protocol";
 import { OPERATIONS } from "../communication/constants";
-import { SubscriptionConfig, StreamType, StreamAction } from "../types/subscription";
+import { SubscriptionConfig, WorkspaceEventType, WorkspaceEventAction } from "../types/subscription";
 import { Workspace } from "../models/workspace";
 import { Frame } from "../models/frame";
 import { Child } from "../types/builders";
@@ -10,6 +11,7 @@ import { Glue42Workspaces } from "../../workspaces";
 import { WorkspacesController } from "../types/controller";
 import { GDWindow } from "../types/glue";
 import { BaseController } from "./base";
+import { UnsubscribeFunction } from "callback-registry";
 
 export class EnterpriseController implements WorkspacesController {
 
@@ -17,6 +19,10 @@ export class EnterpriseController implements WorkspacesController {
         private readonly bridge: Bridge,
         private readonly base: BaseController
     ) { }
+
+    public checkIsWindowLoaded(windowId: string): boolean {
+        return this.base.checkIsWindowLoaded(windowId);
+    }
 
     public async checkIsInSwimlane(windowId: string): Promise<boolean> {
 
@@ -58,16 +64,39 @@ export class EnterpriseController implements WorkspacesController {
     }
 
     public processLocalSubscription(config: SubscriptionConfig, levelId: string): Promise<Glue42Workspaces.Unsubscribe> {
-        config.levelId = config.levelId || levelId;
+        config.scopeId = config.scopeId || levelId;
+
+        if (config.eventType === "window" && config.action === "loaded") {
+            const originalCB = config.callback;
+
+            const wrappedCB = async (callbackData: WindowStreamData): Promise<void> => {
+                await this.base.notifyWindowAdded(callbackData.windowSummary.config.windowId);
+                originalCB(callbackData);
+            };
+
+            config.callback = wrappedCB;
+        }
 
         return this.bridge.subscribe(config);
     }
 
-    public processGlobalSubscription(callback: (callbackData: unknown) => void, streamType: StreamType, action: StreamAction): Promise<Glue42Workspaces.Unsubscribe> {
+    public processGlobalSubscription(callback: (callbackData: unknown) => void, eventType: WorkspaceEventType, action: WorkspaceEventAction): Promise<Glue42Workspaces.Unsubscribe> {
         const config: SubscriptionConfig = {
-            streamType, callback, action,
-            level: "global",
+            eventType, callback, action,
+            scope: "global",
         };
+        
+        if (eventType === "window" && action === "loaded") {
+            const wrappedCB = async (callbackData: WindowStreamData): Promise<void> => {
+
+                await this.base.notifyWindowAdded(callbackData.windowSummary.config.windowId);
+                
+                callback(callbackData);
+            };
+
+            config.callback = wrappedCB;
+        }
+
         return this.bridge.subscribe(config);
     }
 
@@ -176,15 +205,39 @@ export class EnterpriseController implements WorkspacesController {
     }
 
     public async saveLayout(config: Glue42Workspaces.WorkspaceLayoutSaveConfig): Promise<Glue42Workspaces.WorkspaceLayout> {
-        return await this.bridge.send(OPERATIONS.saveLayout.name, { name: config.name, workspaceId: config.workspaceId });
+        return await this.bridge.send(OPERATIONS.saveLayout.name, config);
     }
 
     public async importLayout(layouts: Glue42Workspaces.WorkspaceLayout[]): Promise<void> {
         await Promise.all(layouts.map((layout) => this.bridge.send(OPERATIONS.importLayout.name, layout)));
     }
 
+    public handleOnSaved(callback: (layout: Glue42Workspaces.WorkspaceLayout) => void): UnsubscribeFunction {
+        return this.base.handleOnSaved(callback);
+    }
+
+    public handleOnRemoved(callback: (layout: Glue42Workspaces.WorkspaceLayout) => void): UnsubscribeFunction {
+        return this.base.handleOnRemoved(callback);
+    }
+
     public async bundleTo(type: "row" | "column", workspaceId: string): Promise<void> {
         return await this.base.bundleTo(type, workspaceId);
+    }
+
+    public getWorkspaceContext(workspaceId: string): Promise<any> {
+        return this.base.getWorkspaceContext(workspaceId);
+    }
+
+    public setWorkspaceContext(workspaceId: string, data: any): Promise<void> {
+        return this.base.setWorkspaceContext(workspaceId, data);
+    }
+
+    public updateWorkspaceContext(workspaceId: string, data: any): Promise<void> {
+        return this.base.updateWorkspaceContext(workspaceId, data);
+    }
+
+    public subscribeWorkspaceContextUpdated(workspaceId: string, callback: (data: any) => void): Promise<import("callback-registry").UnsubscribeFunction> {
+        return this.base.subscribeWorkspaceContextUpdated(workspaceId, callback);
     }
 
     public async restoreItem(itemId: string): Promise<void> {
@@ -218,17 +271,17 @@ export class EnterpriseController implements WorkspacesController {
     public async forceLoadWindow(itemId: string): Promise<string> {
         const windowId = await this.base.forceLoadWindow(itemId);
 
-        const foundGDWindow = this.base.getGDWindow(windowId);
-
-        if (!foundGDWindow) {
-            await this.base.notifyWindowAdded(windowId);
-        }
+        await this.base.notifyWindowAdded(windowId);
 
         return windowId;
     }
 
-    public async ejectWindow(itemId: string): Promise<void> {
-        return await this.base.ejectWindow(itemId);
+    public async ejectWindow(itemId: string): Promise<string> {
+        const windowId: string = (await this.base.ejectWindow(itemId)).windowId;
+
+        await this.base.notifyWindowAdded(windowId);
+
+        return windowId;
     }
 
     public async moveWindowTo(itemId: string, newParentId: string): Promise<void> {

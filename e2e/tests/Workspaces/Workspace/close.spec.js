@@ -14,9 +14,7 @@ describe('close() Should ', function () {
     }
     let workspace = undefined;
 
-    before(() => {
-        return coreReady;
-    });
+    before(() => coreReady);
 
     beforeEach(async () => {
         await glue.workspaces.createWorkspace(basicConfig);
@@ -153,17 +151,20 @@ describe('close() Should ', function () {
     });
 
     it("reject when the workspace has been closed twice", (done) => {
-        workspace.close().then(() => {
-            workspace.close().then(() => {
-                done("Should not resolve");
-            }).catch(() => done());
-        }).catch(done);
+        workspace.close()
+            .then(() => {
+                return workspace.close();
+            })
+            .then(() => done("Should not resolve"))
+            .catch(() => done());
     });
 
     it("reject when the workspace has been closed twice without waiting", (done) => {
         Promise.all([workspace.close(), workspace.close()]).then(() => {
             done("Should not resolve");
-        }).catch(() => done());
+        }).catch(() => {
+            done();
+        });
     });
 
 });

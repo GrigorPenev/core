@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import { Decoder, object, boolean, string, optional, array, oneOf, constant, lazy, number, anyJson, intersection } from "decoder-validate";
-import { IsWindowInSwimlaneResult, WorkspaceSnapshotResult, ChildSnapshotResult, WorkspaceConfigResult, FrameSummaryResult, WorkspaceCreateConfigProtocol, GetFrameSummaryConfig, WorkspaceSummaryResult, LayoutSummariesResult, LayoutSummary, OpenWorkspaceConfig, FrameSummariesResult, WorkspaceSummariesResult, ExportedLayoutsResult, DeleteLayoutConfig, SimpleItemConfig, ResizeItemConfig, MoveFrameConfig, FrameSnapshotResult, BaseChildSnapshotConfig, ParentSnapshotConfig, SwimlaneWindowSnapshotConfig, SimpleWindowOperationSuccessResult, SetItemTitleConfig, MoveWindowConfig, AddWindowConfig, AddContainerConfig, AddItemResult, BundleConfig, WorkspaceStreamData, FrameStreamData, ContainerStreamData, ContainerSummaryResult, WindowStreamData } from "../types/protocol";
-import { StreamType, StreamAction } from "../types/subscription";
+import { IsWindowInSwimlaneResult, WorkspaceSnapshotResult, ChildSnapshotResult, WorkspaceConfigResult, FrameSummaryResult, WorkspaceCreateConfigProtocol, GetFrameSummaryConfig, WorkspaceSummaryResult, LayoutSummariesResult, LayoutSummary, OpenWorkspaceConfig, FrameSummariesResult, WorkspaceSummariesResult, ExportedLayoutsResult, DeleteLayoutConfig, SimpleItemConfig, ResizeItemConfig, MoveFrameConfig, FrameSnapshotResult, BaseChildSnapshotConfig, ParentSnapshotConfig, SwimlaneWindowSnapshotConfig, SimpleWindowOperationSuccessResult, SetItemTitleConfig, MoveWindowConfig, AddWindowConfig, AddContainerConfig, AddItemResult, BundleConfig, WorkspaceStreamData, FrameStreamData, ContainerStreamData, ContainerSummaryResult, WindowStreamData, PingResult } from "../types/protocol";
+import { WorkspaceEventType, WorkspaceEventAction } from "../types/subscription";
 import { Glue42Workspaces } from "../../workspaces";
 
 export const nonEmptyStringDecoder: Decoder<string> = string().where((s) => s.length > 0, "Expected a non-empty string");
@@ -174,7 +174,8 @@ export const workspaceSummaryDecoder: Decoder<Glue42Workspaces.WorkspaceSummary>
     frameId: nonEmptyStringDecoder,
     positionIndex: number(),
     title: nonEmptyStringDecoder,
-    focused: boolean()
+    focused: boolean(),
+    layoutName: optional(nonEmptyStringDecoder)
 });
 
 export const containerSummaryDecoder: Decoder<Glue42Workspaces.BoxSummary> = object({
@@ -185,17 +186,19 @@ export const containerSummaryDecoder: Decoder<Glue42Workspaces.BoxSummary> = obj
     positionIndex: number()
 });
 
-export const streamRequestArgumentsDecoder: Decoder<{ type: StreamType; branch: string }> = object({
-    type: oneOf<"frame" | "workspace" | "container" | "window">(
-        constant("frame"),
-        constant("workspace"),
-        constant("container"),
-        constant("window")
-    ),
+export const eventTypeDecoder: Decoder<WorkspaceEventType> = oneOf<"frame" | "workspace" | "container" | "window">(
+    constant("frame"),
+    constant("workspace"),
+    constant("container"),
+    constant("window")
+);
+
+export const streamRequestArgumentsDecoder: Decoder<{ type: WorkspaceEventType; branch: string }> = object({
+    type: eventTypeDecoder,
     branch: nonEmptyStringDecoder
 });
 
-export const streamActionDecoder: Decoder<StreamAction> = oneOf<"opened" | "closing" | "closed" | "focus" | "added" | "loaded" | "removed" | "childrenUpdate" | "containerChange">(
+export const workspaceEventActionDecoder: Decoder<WorkspaceEventAction> = oneOf<"opened" | "closing" | "closed" | "focus" | "added" | "loaded" | "removed" | "childrenUpdate" | "containerChange">(
     constant("opened"),
     constant("closing"),
     constant("closed"),
@@ -211,7 +214,8 @@ export const workspaceConfigResultDecoder: Decoder<WorkspaceConfigResult> = obje
     frameId: nonEmptyStringDecoder,
     title: nonEmptyStringDecoder,
     positionIndex: nonNegativeNumberDecoder,
-    name: nonEmptyStringDecoder
+    name: nonEmptyStringDecoder,
+    layoutName: optional(nonEmptyStringDecoder)
 });
 
 export const baseChildSnapshotConfigDecoder: Decoder<BaseChildSnapshotConfig> = object({
@@ -227,7 +231,6 @@ export const swimlaneWindowSnapshotConfigDecoder: Decoder<SwimlaneWindowSnapshot
     object({
         windowId: optional(nonEmptyStringDecoder),
         isMaximized: boolean(),
-        isLoaded: boolean(),
         isFocused: boolean(),
         title: optional(string()),
         appName: optional(nonEmptyStringDecoder)
@@ -317,6 +320,7 @@ export const workspaceLayoutDecoder: Decoder<Glue42Workspaces.WorkspaceLayout> =
         type: constant("Workspace"),
         state: object({
             config: anyJson(),
+            context: anyJson(),
             children: array(oneOf<Glue42Workspaces.RowLayoutItem | Glue42Workspaces.ColumnLayoutItem | Glue42Workspaces.GroupLayoutItem | Glue42Workspaces.WindowLayoutItem>(
                 rowLayoutItemDecoder,
                 columnLayoutItemDecoder,
@@ -426,6 +430,10 @@ export const addItemResultDecoder: Decoder<AddItemResult> = object({
     windowId: optional(nonEmptyStringDecoder)
 });
 
+export const pingResultDecoder: Decoder<PingResult> = object({
+    live: boolean()
+});
+
 export const bundleConfigDecoder: Decoder<BundleConfig> = object({
     type: oneOf<"row" | "column">(
         constant("row"),
@@ -462,5 +470,6 @@ export const windowStreamDataDecoder: Decoder<WindowStreamData> = object({
 
 export const workspaceLayoutSaveConfigDecoder: Decoder<Glue42Workspaces.WorkspaceLayoutSaveConfig> = object({
     name: nonEmptyStringDecoder,
-    workspaceId: nonEmptyStringDecoder
+    workspaceId: nonEmptyStringDecoder,
+    saveContext: optional(boolean())
 });

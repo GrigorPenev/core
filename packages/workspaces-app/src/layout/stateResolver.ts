@@ -1,4 +1,4 @@
-import { WindowSummary, WorkspaceSummary, ContainerSummary } from "../types/internal";
+import { WindowSummary, WorkspaceSummary, ContainerSummary, WorkspaceOptionsWithLayoutName, WorkspaceConfig } from "../types/internal";
 import store from "../store";
 import GoldenLayout from "@glue42/golden-layout";
 import { LayoutEventEmitter } from "./eventEmitter";
@@ -19,9 +19,9 @@ export class LayoutStateResolver {
         return this.getWindowSummaryCore(windowContentItem, windowId);
     }
 
-    public getWindowSummarySync(windowId: string | string[]): WindowSummary {
+    public getWindowSummarySync(windowId: string | string[], contentItem?: GoldenLayout.Component): WindowSummary {
         windowId = Array.isArray(windowId) ? windowId[0] : windowId;
-        const windowContentItem = store.getWindowContentItem(windowId);
+        const windowContentItem = contentItem || store.getWindowContentItem(windowId);
 
         return this.getWindowSummaryCore(windowContentItem, windowId);
     }
@@ -52,14 +52,18 @@ export class LayoutStateResolver {
     public getWorkspaceSummary(workspaceId: string): WorkspaceSummary {
         const config = this.getWorkspaceConfig(workspaceId);
         const workspaceIndex = this.getWorkspaceTabIndex(workspaceId);
+        const summaryConfig: WorkspaceConfig ={
+            frameId: this._frameId,
+            positionIndex: workspaceIndex,
+            title: store.getWorkspaceTitle(workspaceId),
+            name: config.workspacesOptions.name || store.getWorkspaceTitle(workspaceId),
+        };
 
+        if((config.workspacesOptions as WorkspaceOptionsWithLayoutName).layoutName){
+            summaryConfig.layoutName = (config.workspacesOptions as WorkspaceOptionsWithLayoutName).layoutName
+        }
         return {
-            config: {
-                frameId: this._frameId,
-                positionIndex: workspaceIndex,
-                title: store.getWorkspaceTitle(workspaceId),
-                name: config.workspacesOptions.name || store.getWorkspaceTitle(workspaceId)
-            },
+            config: summaryConfig,
             id: workspaceId
         };
     }

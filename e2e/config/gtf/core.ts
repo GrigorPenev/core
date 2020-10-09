@@ -1,11 +1,12 @@
 import { Glue42Web } from "../../../packages/web/web.d";
-import { GtfApp } from "./аpp";
-import { CancellablePromise } from './types';
+import { Glue42CoreConfig } from "../../../packages/web/src/glue.config";
+import { GtfApp } from "./app";
+import { Gtf } from "./types";
 
-export class GtfCore {
+export class GtfCore implements Gtf.Core {
     private readonly controlMethodName = "G42Core.E2E.Control";
-    private windowNameCounter: number = 0;
-    private activeWindowHooks: any = [];
+    private windowNameCounter = 0;
+    private activeWindowHooks: any[] = [];
 
     constructor(private readonly glue: Glue42Web.API) {
         console.log("GTF CREATED");
@@ -34,43 +35,14 @@ export class GtfCore {
         };
     }
 
-    public wait(mSeconds: number, funcToCall: any): CancellablePromise<void> {
-        let fakePromiseResolve: any;
-        let isCancelled = false;
+    public async waitForFetch(): Promise<void> {
+        const pollingInterval = (await this.getGlueConfigJson()).appManager.remoteSources[0].pollingInterval;
 
-        const fakePromise = new Promise((res, rej) => {
-            fakePromiseResolve = res;
-        });
-
-        const promise = new Promise((res, rej) => {
+        return new Promise((resolve) => {
             setTimeout(() => {
-                if (isCancelled) {
-                    return;
-                }
-                try {
-                    if (funcToCall) {
-                        funcToCall();
-                    }
-                    res();
-                } catch (error) {
-                    rej(error);
-                }
-            }, mSeconds);
+                resolve();
+            }, pollingInterval);
         });
-
-        fakePromise.then(() => {
-            isCancelled = true;
-        });
-
-        Promise.race([promise, fakePromise]);
-
-        const cancel = () => {
-            fakePromiseResolve();
-        };
-
-        (promise as any).cancel = cancel;
-
-        return promise as CancellablePromise<any>;
     }
 
     public getWindowName(prefix = "windows"): string {
@@ -78,7 +50,7 @@ export class GtfCore {
         return `${prefix}.${Date.now()}.${this.windowNameCounter}`;
     }
 
-    public async getGlueConfigJson(url = "/glue/glue.config.json"): Promise<any> {
+    public async getGlueConfigJson(url = "/glue/glue.config.json"): Promise<Glue42CoreConfig> {
         const data = await (await fetch(url)).json();
 
         return data;
@@ -90,7 +62,7 @@ export class GtfCore {
         return channelContexts.map<string>((channelContext) => channelContext.name);
     }
 
-    public async createApp(appName = "coreSupport"): Promise<GtfApp> {
+    public async createApp(appName = "coreSupport"): Promise<Gtf.App> {
         const foundApp = this.glue.appManager.application(appName);
 
         if (!foundApp) {
@@ -102,6 +74,18 @@ export class GtfCore {
 
         return new GtfApp(this.glue, supportInstance, this.controlMethodName);
 
+    }
+
+    public post(url: string, body: string): Promise<Response> {
+        const init = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body
+        };
+
+        return fetch(url, init);
     }
 
     private waitForControlInstance(instanceId: string): Promise<void> {
